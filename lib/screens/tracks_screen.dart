@@ -1,7 +1,11 @@
+import 'dart:async';
+import 'dart:io';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import '../models/tracker.dart';
 import '../models/track.dart';
 import '../services/api_service.dart';
+import '../services/offline_queue.dart';
 import '../widgets/track_sheet.dart';
 
 class TracksScreen extends StatefulWidget {
@@ -28,6 +32,7 @@ class _TracksScreenState extends State<TracksScreen> {
   late List<_ListItem> _items;
   late int _totalCount;
   bool _refreshing = false;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
 
   @override
   void initState() {
@@ -36,6 +41,26 @@ class _TracksScreenState extends State<TracksScreen> {
     _items = _buildItems(_tracks);
     _totalCount = widget.tracker.nbTracksTotal;
     _scrollController.addListener(_onScroll);
+    _connectivitySub = Connectivity().onConnectivityChanged.listen(_onConnectivityChanged);
+  }
+
+  void _onConnectivityChanged(List<ConnectivityResult> results) {
+    final hasNetwork = results.any((r) => r != ConnectivityResult.none);
+    if (hasNetwork) _replayAndRefresh();
+  }
+
+  Future<void> _replayAndRefresh() async {
+    final pending = await OfflineQueue.getAll();
+    if (pending.isEmpty) return;
+    final replayed = await OfflineQueue.replay(ApiService(widget.token));
+    if (replayed.isEmpty || !mounted) return;
+    // Remplace les tracks pending par les tracks serveur
+    for (final (localId, serverTrack) in replayed) {
+      final idx = _tracks.indexWhere((t) => t.localId == localId);
+      if (idx != -1) _tracks[idx] = serverTrack;
+    }
+    _rebuildItems();
+    widget.onChanged?.call();
   }
 
   void _rebuildItems() {
@@ -54,6 +79,12 @@ class _TracksScreenState extends State<TracksScreen> {
       setState(() => _totalCount = updated.nbTracksTotal);
       _rebuildItems();
       widget.onChanged?.call();
+    } on SocketException {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Pas de connexion — données non mises à jour')),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -270,6 +301,7 @@ class _TracksScreenState extends State<TracksScreen> {
 
   @override
   void dispose() {
+    _connectivitySub?.cancel();
     _scrollController.dispose();
     super.dispose();
   }
@@ -333,17 +365,24 @@ class _TrackTile extends StatelessWidget {
     final valeurStr =
         track.valeur != null ? ' — ${_formatValeur(track.valeur!)}' : '';
     return ListTile(
-      leading: const Icon(Icons.check_circle_outline),
+      leading: track.isPending
+          ? const Tooltip(
+              message: 'En attente de synchronisation',
+              child: Icon(Icons.schedule, color: Colors.orange),
+            )
+          : const Icon(Icons.check_circle_outline),
       title: Text('${formatTime(track.datetime)}$valeurStr'),
       subtitle: track.commentaire.isNotEmpty ? Text(track.commentaire) : null,
       dense: true,
-      trailing: PopupMenuButton<String>(
-        onSelected: (v) => v == 'edit' ? onEdit() : onDelete(),
-        itemBuilder: (_) => const [
-          PopupMenuItem(value: 'edit', child: Text('Modifier')),
-          PopupMenuItem(value: 'delete', child: Text('Supprimer')),
-        ],
-      ),
+      trailing: track.isPending
+          ? null
+          : PopupMenuButton<String>(
+              onSelected: (v) => v == 'edit' ? onEdit() : onDelete(),
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 'edit', child: Text('Modifier')),
+                PopupMenuItem(value: 'delete', child: Text('Supprimer')),
+              ],
+            ),
     );
   }
 }

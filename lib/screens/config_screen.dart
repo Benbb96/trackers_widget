@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:home_widget/home_widget.dart';
@@ -63,6 +64,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
         jsonEncode(trackers.map((t) => t.toJson()).toList()),
       );
       setState(() => _trackers = trackers);
+    } on SocketException {
+      setState(() => _error = 'Pas de connexion et aucun cache disponible.\nConnecte-toi une première fois pour activer le mode offline.');
     } catch (e) {
       setState(() => _error = e.toString());
     } finally {

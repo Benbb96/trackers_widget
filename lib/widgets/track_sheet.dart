@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../models/track.dart';
 import '../models/tracker.dart';
 import '../services/api_service.dart';
+import '../services/offline_queue.dart';
 import '../utils/fa_icon_helper.dart';
 
 class TrackSheet extends StatefulWidget {
@@ -81,27 +83,57 @@ class _TrackSheetState extends State<TrackSheet> {
       _loading = true;
       _error = null;
     });
+
     try {
-      final api = ApiService(widget.token);
-      final Track result;
+      final commentaire = _commentController.text.trim();
+
+      // Mode édition : toujours en ligne (pas de queue offline pour les modifs)
       if (_isEditing) {
-        result = await api.updateTrack(
+        final track = await ApiService(widget.token).updateTrack(
           widget.editTrack!.id,
-          commentaire: _commentController.text.trim(),
+          commentaire: commentaire,
           datetime: _dateTime,
           valeur: valeur,
         );
-      } else {
-        result = await api.postTrack(
-          widget.tracker.id,
-          commentaire: _commentController.text.trim(),
-          datetime: _dateTime,
-          valeur: valeur,
-        );
+        if (mounted) {
+          Navigator.pop(context);
+          widget.onSuccess(track);
+        }
+        return;
       }
-      if (mounted) {
-        Navigator.pop(context);
-        widget.onSuccess(result);
+
+      // Création : tente en ligne, bascule en queue si pas de réseau
+      try {
+        final track = await ApiService(widget.token).postTrack(
+          widget.tracker.id,
+          commentaire: commentaire,
+          datetime: _dateTime,
+          valeur: valeur,
+        );
+        if (mounted) {
+          Navigator.pop(context);
+          widget.onSuccess(track);
+        }
+      } on SocketException {
+        final localId = DateTime.now().microsecondsSinceEpoch.toString();
+        await OfflineQueue.add(PendingTrack(
+          localId: localId,
+          trackerId: widget.tracker.id,
+          datetime: _dateTime,
+          commentaire: commentaire,
+          valeur: valeur,
+        ));
+        final pendingTrack = Track(
+          id: 0,
+          datetime: _dateTime,
+          commentaire: commentaire,
+          valeur: valeur,
+          localId: localId,
+        );
+        if (mounted) {
+          Navigator.pop(context);
+          widget.onSuccess(pendingTrack);
+        }
       }
     } catch (e) {
       setState(() => _error = e.toString());

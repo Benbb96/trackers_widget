@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/tracker.dart';
 import '../models/track.dart';
 
@@ -17,18 +19,37 @@ class ApiService {
         'Content-Type': 'application/json',
       };
 
+  static const _trackersCacheKey = 'trackers_cache';
+
   Future<List<Tracker>> fetchTrackers() async {
-    final response = await _client.get(
-      Uri.parse('$_baseUrl/tracker/api/tracker'),
-      headers: _headers,
-    );
-    if (response.statusCode != 200) {
-      throw Exception('Erreur ${response.statusCode} : ${response.body}');
+    try {
+      final response = await _client.get(
+        Uri.parse('$_baseUrl/tracker/api/tracker'),
+        headers: _headers,
+      );
+      if (response.statusCode != 200) {
+        throw Exception('Erreur ${response.statusCode} : ${response.body}');
+      }
+      final data = jsonDecode(response.body);
+      final List<dynamic> items = data is List ? data : data['results'] ?? [];
+      final trackers = items
+          .map((e) => Tracker.fromJson(e as Map<String, dynamic>))
+          .toList()
+        ..sort((a, b) => a.order.compareTo(b.order));
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+          _trackersCacheKey, jsonEncode(trackers.map((t) => t.toJson()).toList()));
+      return trackers;
+    } on SocketException {
+      final prefs = await SharedPreferences.getInstance();
+      final cached = prefs.getString(_trackersCacheKey);
+      if (cached == null) rethrow;
+      final list = jsonDecode(cached) as List<dynamic>;
+      return (list
+          .map((e) => Tracker.fromJson(e as Map<String, dynamic>))
+          .toList()
+        ..sort((a, b) => a.order.compareTo(b.order)));
     }
-    final data = jsonDecode(response.body);
-    final List<dynamic> items = data is List ? data : data['results'] ?? [];
-    return (items.map((e) => Tracker.fromJson(e as Map<String, dynamic>)).toList()
-      ..sort((a, b) => a.order.compareTo(b.order)));
   }
 
   Future<Track> postTrack(

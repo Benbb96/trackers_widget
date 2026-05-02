@@ -45,13 +45,15 @@ class Tracker {
     );
   }
 
-  // toJson minimal pour le cache widget (pas besoin des tracks)
   Map<String, dynamic> toJson() => {
         'id': id,
         'nom': name,
         'icone': icone,
         'color': color,
         'contrast_color': contrastColor,
+        'order': order,
+        'nb_tracks': nbTracksTotal,
+        'type': type,
       };
 
   int get nbTracks => nbTracksTotal;
