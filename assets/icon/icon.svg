@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+
+  <!-- Fond arrondi façon icône app -->
+  <rect width="512" height="512" rx="110" fill="#1B2B3A"/>
+
+  <defs>
+    <clipPath id="eye">
+      <path d="M 64,256 C 128,136 384,136 448,256 C 384,376 128,376 64,256 Z"/>
+    </clipPath>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Blanc de l'œil -->
+  <path
+    d="M 64,256 C 128,136 384,136 448,256 C 384,376 128,376 64,256 Z"
+    fill="#E8EDF2"
+    filter="url(#shadow)"
+  />
+
+  <!-- Iris -->
+  <circle cx="256" cy="256" r="96" fill="#2A7FC1" clip-path="url(#eye)"/>
+
+  <!-- Anneau iris (profondeur) -->
+  <circle cx="256" cy="256" r="96" fill="none" stroke="#1D6AAA" stroke-width="12"
+          clip-path="url(#eye)"/>
+
+  <!-- Pupille -->
+  <circle cx="256" cy="256" r="55" fill="#14243A" clip-path="url(#eye)"/>
+
+  <!-- Anneau teal autour de la pupille — accent monitoring -->
+  <circle cx="256" cy="256" r="55" fill="none" stroke="#3EC9B0" stroke-width="5"
+          clip-path="url(#eye)"/>
+
+  <!-- Tick blanc dans la pupille -->
+  <polyline
+    points="226,257 244,276 288,230"
+    fill="none"
+    stroke="white"
+    stroke-width="11"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    clip-path="url(#eye)"
+  />
+
+  <!-- Reflet principal -->
+  <circle cx="216" cy="218" r="22" fill="white" opacity="0.45" clip-path="url(#eye)"/>
+  <!-- Petit reflet secondaire -->
+  <circle cx="284" cy="278" r="9" fill="white" opacity="0.20" clip-path="url(#eye)"/>
+
+  <!-- Tirets scan gauche/droite -->
+  <line x1="64" y1="256" x2="104" y2="256" stroke="#3EC9B0" stroke-width="5" stroke-linecap="round" opacity="0.7"/>
+  <line x1="408" y1="256" x2="448" y2="256" stroke="#3EC9B0" stroke-width="5" stroke-linecap="round" opacity="0.7"/>
+
+</svg>
