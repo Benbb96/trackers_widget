@@ -35,6 +35,7 @@ class ApiService {
     int trackerId, {
     String? commentaire,
     DateTime? datetime,
+    double? valeur,
   }) async {
     final body = <String, dynamic>{'tracker': trackerId};
     if (commentaire != null && commentaire.isNotEmpty) {
@@ -43,6 +44,7 @@ class ApiService {
     if (datetime != null) {
       body['datetime'] = datetime.toIso8601String();
     }
+    if (valeur != null) body['valeur'] = valeur;
     final response = await _client.post(
       Uri.parse('$_baseUrl/tracker/api/track'),
       headers: _headers,
@@ -58,10 +60,12 @@ class ApiService {
     int trackId, {
     String? commentaire,
     DateTime? datetime,
+    double? valeur,
   }) async {
     final body = <String, dynamic>{};
     if (commentaire != null) body['commentaire'] = commentaire;
     if (datetime != null) body['datetime'] = datetime.toIso8601String();
+    if (valeur != null) body['valeur'] = valeur;
     final response = await _client.patch(
       Uri.parse('$_baseUrl/tracker/api/track/$trackId'),
       headers: _headers,
@@ -108,11 +112,12 @@ class ApiService {
     required String nom,
     required String icone,
     required String color,
+    String type = 'evenement',
   }) async {
     final response = await _client.post(
       Uri.parse('$_baseUrl/tracker/api/tracker'),
       headers: _headers,
-      body: jsonEncode({'nom': nom, 'icone': icone, 'color': color}),
+      body: jsonEncode({'nom': nom, 'icone': icone, 'color': color, 'type': type}),
     );
     if (response.statusCode != 201) {
       throw Exception('Erreur ${response.statusCode} : ${response.body}');

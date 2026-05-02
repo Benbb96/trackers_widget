@@ -10,6 +10,7 @@ class Tracker {
   final List<Track> tracks;
   final int order;
   final int nbTracksTotal;
+  final String type;
 
   const Tracker({
     required this.id,
@@ -20,7 +21,10 @@ class Tracker {
     this.tracks = const [],
     this.order = 0,
     this.nbTracksTotal = 0,
+    this.type = 'evenement',
   });
+
+  bool get isMesure => type == 'mesure';
 
   factory Tracker.fromJson(Map<String, dynamic> json) {
     final rawTracks = json['tracks'] as List<dynamic>? ?? [];
@@ -37,6 +41,7 @@ class Tracker {
       tracks: tracks,
       order: json['order'] as int? ?? 0,
       nbTracksTotal: json['nb_tracks'] as int? ?? tracks.length,
+      type: json['type'] as String? ?? 'evenement',
     );
   }
 

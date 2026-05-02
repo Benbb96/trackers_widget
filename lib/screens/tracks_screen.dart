@@ -325,11 +325,16 @@ class _TrackTile extends StatelessWidget {
     required this.onDelete,
   });
 
+  String _formatValeur(double v) =>
+      v == v.truncateToDouble() ? v.truncate().toString() : v.toString();
+
   @override
   Widget build(BuildContext context) {
+    final valeurStr =
+        track.valeur != null ? ' — ${_formatValeur(track.valeur!)}' : '';
     return ListTile(
       leading: const Icon(Icons.check_circle_outline),
-      title: Text(formatTime(track.datetime)),
+      title: Text('${formatTime(track.datetime)}$valeurStr'),
       subtitle: track.commentaire.isNotEmpty ? Text(track.commentaire) : null,
       dense: true,
       trailing: PopupMenuButton<String>(

@@ -25,10 +25,12 @@ class TrackSheet extends StatefulWidget {
 class _TrackSheetState extends State<TrackSheet> {
   late DateTime _dateTime;
   late final TextEditingController _commentController;
+  late final TextEditingController _valeurController;
   bool _loading = false;
   String? _error;
 
   bool get _isEditing => widget.editTrack != null;
+  bool get _isMesure => widget.tracker.isMesure;
 
   @override
   void initState() {
@@ -37,6 +39,14 @@ class _TrackSheetState extends State<TrackSheet> {
     _commentController = TextEditingController(
       text: widget.editTrack?.commentaire ?? '',
     );
+    _valeurController = TextEditingController(
+      text: _formatValeurInit(widget.editTrack?.valeur),
+    );
+  }
+
+  String _formatValeurInit(double? v) {
+    if (v == null) return '';
+    return v == v.truncateToDouble() ? v.truncate().toString() : v.toString();
   }
 
   Future<void> _pickDate() async {
@@ -58,6 +68,15 @@ class _TrackSheetState extends State<TrackSheet> {
   }
 
   Future<void> _submit() async {
+    double? valeur;
+    if (_isMesure) {
+      valeur = double.tryParse(_valeurController.text.trim().replaceAll(',', '.'));
+      if (valeur == null) {
+        setState(() => _error = 'Valeur numérique requise.');
+        return;
+      }
+    }
+
     setState(() {
       _loading = true;
       _error = null;
@@ -70,12 +89,14 @@ class _TrackSheetState extends State<TrackSheet> {
           widget.editTrack!.id,
           commentaire: _commentController.text.trim(),
           datetime: _dateTime,
+          valeur: valeur,
         );
       } else {
         result = await api.postTrack(
           widget.tracker.id,
           commentaire: _commentController.text.trim(),
           datetime: _dateTime,
+          valeur: valeur,
         );
       }
       if (mounted) {
@@ -124,6 +145,18 @@ class _TrackSheetState extends State<TrackSheet> {
             onPressed: _pickDate,
           ),
           const SizedBox(height: 12),
+          if (_isMesure) ...[
+            TextField(
+              controller: _valeurController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: 'Valeur *',
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (_) => setState(() => _error = null),
+            ),
+            const SizedBox(height: 12),
+          ],
           TextField(
             controller: _commentController,
             decoration: const InputDecoration(
@@ -161,6 +194,7 @@ class _TrackSheetState extends State<TrackSheet> {
   @override
   void dispose() {
     _commentController.dispose();
+    _valeurController.dispose();
     super.dispose();
   }
 }

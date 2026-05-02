@@ -21,8 +21,9 @@ class _NewTrackerScreenState extends State<NewTrackerScreen> {
   final _nomController = TextEditingController();
   final _iconSearchController = TextEditingController();
 
-  String? _selectedIconName; // ex: "briefcase-medical"
+  String? _selectedIconName;
   Color _selectedColor = const Color(0xFF2196F3);
+  String _selectedType = 'evenement';
   bool _loading = false;
   String? _error;
 
@@ -66,6 +67,7 @@ class _NewTrackerScreenState extends State<NewTrackerScreen> {
         nom: nom,
         icone: icone,
         color: colorHex,
+        type: _selectedType,
       );
       if (mounted) {
         widget.onCreated();
@@ -122,6 +124,25 @@ class _NewTrackerScreenState extends State<NewTrackerScreen> {
                       border: OutlineInputBorder(),
                     ),
                     textCapitalization: TextCapitalization.sentences,
+                  ),
+                  const SizedBox(height: 12),
+                  // Type
+                  SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(
+                        value: 'evenement',
+                        label: Text('Événement'),
+                        icon: Icon(Icons.event),
+                      ),
+                      ButtonSegment(
+                        value: 'mesure',
+                        label: Text('Mesure'),
+                        icon: Icon(Icons.straighten),
+                      ),
+                    ],
+                    selected: {_selectedType},
+                    onSelectionChanged: (s) =>
+                        setState(() => _selectedType = s.first),
                   ),
                   const SizedBox(height: 12),
                   // Palette de couleurs
