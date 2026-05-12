@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<iq:manifest xmlns:iq="http://www.garmin.com/xml/connectiq" version="3">
+    <iq:application
+        entry="TrackerApp"
+        id="a3b7f2c1-d8e9-4f01-b234-567890abcdef"
+        launcherIcon="@Drawables.LauncherIcon"
+        minSdkVersion="3.2.0"
+        name="@Strings.AppName"
+        type="watch-app"
+        version="1.0.0">
+        <iq:products>
+            <iq:product id="epix2pro47mm"/>
+        </iq:products>
+        <iq:permissions>
+            <iq:uses-permission id="Communications"/>
+        </iq:permissions>
+        <iq:languages>
+            <iq:language>fra</iq:language>
+            <iq:language>eng</iq:language>
+        </iq:languages>
+    </iq:application>
+</iq:manifest>

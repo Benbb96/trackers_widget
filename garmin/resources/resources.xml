@@ -1,0 +1,15 @@
+<resources xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
+
+    <properties>
+        <property id="apiToken" type="string">YOUR_API_TOKEN</property>
+    </properties>
+
+    <strings>
+        <string id="AppName">Trackers</string>
+        <string id="LabelToken">Token API</string>
+    </strings>
+
+    <!-- settings temporairement désactivés pour isoler le crash -->
+
+</resources>

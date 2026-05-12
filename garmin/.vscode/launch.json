@@ -1,0 +1,11 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run on epix Pro Gen 2",
+            "type": "monkeyc",
+            "request": "launch",
+            "device": "epix2pro47mm"
+        }
+    ]
+}
