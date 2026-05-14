@@ -1,5 +1,6 @@
 import Toybox.Graphics;
 import Toybox.Lang;
+import Toybox.Math;
 import Toybox.WatchUi;
 
 // Etats de l'écran de saisie
@@ -32,67 +33,62 @@ class TrackView extends WatchUi.View {
         var cx = w / 2;
         var cy = h / 2;
 
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
-        dc.clear();
-
-        var name = tracker["nom"] as String;
+        var name        = tracker["nom"] as String;
+        var bgColor     = _hexToColor(tracker["color"] as String);
+        var contrastCol = _contrastColor(bgColor);
 
         if (state == STATE_SUCCESS) {
+            dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
+            dc.clear();
             _drawSuccess(dc, w, h, cx, cy, name);
             return;
         }
 
         if (state == STATE_ERROR) {
+            dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
+            dc.clear();
             dc.setColor(Graphics.COLOR_RED, Graphics.COLOR_TRANSPARENT);
             dc.drawText(cx, cy, Graphics.FONT_SMALL, statusMsg,
                         Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
             return;
         }
 
-        // Nom du tracker en haut
-        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, 28, Graphics.FONT_SMALL, name,
-                    Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+        // Fond coloré du tracker
+        dc.setColor(bgColor, bgColor);
+        dc.clear();
 
+        // Nom en haut uniquement pour mesure (pour event il est au centre)
         if (isMesure) {
-            _drawValueInput(dc, w, h, cx, cy);
+            dc.setColor(contrastCol, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, 28, Graphics.FONT_SMALL, name,
+                        Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+            _drawValueInput(dc, w, h, cx, cy, contrastCol);
         } else {
-            _drawConfirm(dc, w, h, cx, cy);
+            _drawConfirm(dc, w, h, cx, cy, contrastCol, name);
         }
     }
 
     private function _drawValueInput(dc as Graphics.Dc, w as Number, h as Number,
-                                     cx as Number, cy as Number) as Void {
-        // Valeur centrale, grande
-        var valStr = _formatVal(valeur);
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, cy - 10, Graphics.FONT_NUMBER_HOT, valStr,
+                                     cx as Number, cy as Number,
+                                     contrastCol as Graphics.ColorType) as Void {
+        dc.setColor(contrastCol, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, cy - 10, Graphics.FONT_NUMBER_HOT, _formatVal(valeur),
                     Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
-
-        // Flèches haut/bas
-        dc.setColor(0x005DFF, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, cy - 70, Graphics.FONT_MEDIUM, "▲",
                     Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
         dc.drawText(cx, cy + 55, Graphics.FONT_MEDIUM, "▼",
                     Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
-
-        // Aide confirmer
-        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, h - 50, Graphics.FONT_XTINY, "START pour confirmer",
                     Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
     private function _drawConfirm(dc as Graphics.Dc, w as Number, h as Number,
-                                  cx as Number, cy as Number) as Void {
-        // Nom du tracker sur fond coloré
-        var bgColor = _hexToColor(tracker["color"] as String);
-        dc.setColor(bgColor, Graphics.COLOR_TRANSPARENT);
-        dc.fillRoundedRectangle(30, cy - 30, w - 60, 60, 14);
-        dc.setColor(_contrastColor(bgColor), Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, cy, Graphics.FONT_MEDIUM, tracker["nom"] as String,
+                                  cx as Number, cy as Number,
+                                  contrastCol as Graphics.ColorType,
+                                  name as String) as Void {
+        dc.setColor(contrastCol, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, cy, Graphics.FONT_MEDIUM, name,
                     Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
-
-        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, h - 50, Graphics.FONT_XTINY, "START pour tracker",
                     Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
     }
@@ -120,7 +116,7 @@ class TrackView extends WatchUi.View {
             return rounded.toString();
         }
         // 1 décimale
-        var dec = ((v - rounded.toFloat()) * 10).toNumber().abs();
+        var dec = Math.round((v - rounded.toFloat()) * 10).toNumber().abs();
         return rounded.toString() + "." + dec.toString();
     }
 }

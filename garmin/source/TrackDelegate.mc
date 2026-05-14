@@ -1,4 +1,3 @@
-import Toybox.Attention;
 import Toybox.Lang;
 import Toybox.Timer;
 import Toybox.WatchUi;
@@ -45,7 +44,7 @@ class TrackDelegate extends WatchUi.BehaviorDelegate {
         if (responseCode == 200 || responseCode == 201) {
             _view.state     = STATE_SUCCESS;
             _view.statusMsg = "";
-            _vibrate();
+            vibrate();
         } else if (responseCode < 0) {
             // Hors ligne → mise en queue
             var t         = _view.tracker;
@@ -54,7 +53,7 @@ class TrackDelegate extends WatchUi.BehaviorDelegate {
             enqueueTrack(trackerId, valeur);
             _view.state     = STATE_SUCCESS;
             _view.statusMsg = "en attente sync";
-            _vibrate();
+            vibrate();
         } else {
             _view.state     = STATE_ERROR;
             _view.statusMsg = "Erreur " + responseCode.toString();
@@ -76,9 +75,4 @@ class TrackDelegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
-    private function _vibrate() as Void {
-        if (Attention has :vibrate) {
-            Attention.vibrate([new Attention.VibeProfile(75, 200)] as Array<Attention.VibeProfile>);
-        }
-    }
 }

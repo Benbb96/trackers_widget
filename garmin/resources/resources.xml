@@ -10,6 +10,10 @@
         <string id="LabelToken">Token API</string>
     </strings>
 
-    <!-- settings temporairement désactivés pour isoler le crash -->
+    <settings>
+        <setting propertyKey="@Properties.apiToken" title="@Strings.LabelToken">
+            <settingConfig type="alphaNumeric" maxLength="40"/>
+        </setting>
+    </settings>
 
 </resources>

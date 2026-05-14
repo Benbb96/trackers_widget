@@ -1,6 +1,8 @@
 import Toybox.Application;
+import Toybox.Attention;
 import Toybox.Communications;
 import Toybox.Graphics;
+import Toybox.WatchUi;
 import Toybox.Lang;
 import Toybox.Time;
 import Toybox.Time.Gregorian;
@@ -12,6 +14,12 @@ const KEY_CACHE = "trackers_cache";
 const KEY_QUEUE = "offline_queue";
 
 // ── Helpers module-level (pas de callback, pas de self) ───────────────────────
+
+function vibrate() as Void {
+    if (Attention has :vibrate) {
+        Attention.vibrate([new Attention.VibeProfile(75, 200)] as Array<Attention.VibeProfile>);
+    }
+}
 
 function _pad2(n as Number) as String {
     return n < 10 ? "0" + n.toString() : n.toString();
@@ -27,7 +35,7 @@ function _apiToken() as String {
     var token = Application.Properties.getValue("apiToken");
     if (token instanceof Lang.String) {
         var s = token as String;
-        if (!s.equals("")) { return s; }
+        if (!s.equals("") && !s.equals("YOUR_API_TOKEN")) { return s; }
     }
     return "";
 }
@@ -81,6 +89,22 @@ function getCachedTrackers() as Lang.Array? {
     return Application.Storage.getValue(KEY_CACHE) as Lang.Array?;
 }
 
+function getQueueSize() as Number {
+    var queue = Application.Storage.getValue(KEY_QUEUE) as Lang.Array?;
+    return queue != null ? queue.size() : 0;
+}
+
+function getQueueCountForTracker(trackerId as Number) as Number {
+    var queue = Application.Storage.getValue(KEY_QUEUE) as Lang.Array?;
+    if (queue == null) { return 0; }
+    var count = 0;
+    for (var i = 0; i < queue.size(); i++) {
+        var entry = queue[i] as Lang.Dictionary;
+        if ((entry["trackerId"] as Number) == trackerId) { count++; }
+    }
+    return count;
+}
+
 function enqueueTrack(trackerId as Number, valeur as Float?) as Void {
     var queue = Application.Storage.getValue(KEY_QUEUE) as Lang.Array?;
     if (queue == null) { queue = [] as Lang.Array; }
@@ -100,6 +124,8 @@ function apiService() as ApiService {
 }
 
 class ApiService {
+
+    private var _replayPending as Lang.Array? = null;
 
     function initialize() {}
 
@@ -127,28 +153,56 @@ class ApiService {
         );
     }
 
-    // Rejoue tous les tracks en attente — fire-and-forget
+    // Rejoue les tracks en attente un par un — supprime chaque item après succès
     function replayQueue() as Void {
+        if (_replayPending != null) { return; }
         var queue = Application.Storage.getValue(KEY_QUEUE) as Lang.Array?;
         if (queue == null || queue.size() == 0) { return; }
-        Application.Storage.deleteValue(KEY_QUEUE);
-        for (var i = 0; i < queue.size(); i++) {
-            var entry = queue[i] as Lang.Dictionary;
-            var body  = { "tracker"  => entry["trackerId"],
-                          "datetime" => entry["datetime"] } as Lang.Dictionary;
-            if (entry.hasKey("valeur")) { body["valeur"] = entry["valeur"]; }
-            Communications.makeWebRequest(
-                BASE_URL + "/tracker/api/track",
-                body,
-                { :method       => Communications.HTTP_REQUEST_METHOD_POST,
-                  :headers      => _headers(),
-                  :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON },
-                method(:_onReplayResponse)   // ✓ self existe ici
-            );
+        _replayPending = queue;
+        _replayNext();
+    }
+
+    private function _replayNext() as Void {
+        if (_replayPending == null || _replayPending.size() == 0) {
+            _replayPending = null;
+            return;
         }
+        var entry = _replayPending[0] as Lang.Dictionary;
+        var body  = { "tracker"  => entry["trackerId"],
+                      "datetime" => entry["datetime"] } as Lang.Dictionary;
+        if (entry.hasKey("valeur")) { body["valeur"] = entry["valeur"]; }
+        Communications.makeWebRequest(
+            BASE_URL + "/tracker/api/track",
+            body,
+            { :method       => Communications.HTTP_REQUEST_METHOD_POST,
+              :headers      => _headers(),
+              :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON },
+            method(:_onReplayResponse)
+        );
     }
 
     function _onReplayResponse(responseCode as Number, data as Lang.Dictionary?) as Void {
-        // Silencieux
+        if (_replayPending == null || _replayPending.size() == 0) { return; }
+        if (responseCode == 200 || responseCode == 201) {
+            _replayPending.remove(_replayPending[0]);
+            _persistPending();
+            _replayNext();
+        } else if (responseCode < 0) {
+            _persistPending();  // connexion coupée, on conserve le reste
+            _replayPending = null;
+        } else {
+            _replayPending.remove(_replayPending[0]);  // erreur serveur, on skip
+            _persistPending();
+            _replayNext();
+        }
+        WatchUi.requestUpdate();
+    }
+
+    private function _persistPending() as Void {
+        if (_replayPending == null || _replayPending.size() == 0) {
+            Application.Storage.deleteValue(KEY_QUEUE);
+        } else {
+            Application.Storage.setValue(KEY_QUEUE, _replayPending);
+        }
     }
 }
